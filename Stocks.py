@@ -248,7 +248,7 @@ if __name__ == '__main__':
     stocks = []
 
     for symbol in symbols:
-        stock = Stock.ShyRetrieve(symbol=symbol, downloadAll=False)
+        stock = Stock.ShyRetrieve(symbol=symbol, downloadAll=True)
         if len(stock._history) > 0:
             stocks.append(stock)
             print(f"{stocks[-1].name} added to stocks array. \n{len(stocks)} stocks are in the array.")
