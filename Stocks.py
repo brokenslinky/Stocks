@@ -244,8 +244,9 @@ class Stock:
             return Stock(symbol=symbol)
 
 if __name__ == '__main__':
-    symbols = [ 'SIG','WM', 'PEGI', 'F', 'PEIX', 'GPRE', 'FF', 'FTR', 'HOG', 'CECE', 'VOLVF', 'BIP',
-               'PIN', 'SMHB', 'LVHI', 'TSLA', 'LXU', 'TEVA']
+    #symbols = [ 'SIG','WM', 'PEGI', 'F', 'PEIX', 'GPRE', 'FF', 'FTR', 'HOG', 'CECE', 'VOLVF', 'BIP',
+    #           'PIN', 'SMHB', 'LVHI', 'TSLA', 'LXU', 'TEVA']
+    symbols = [ 'SIG','PEGI', 'F', 'SMHB', 'LVHI']
     stocks = []
 
     for symbol in symbols:
@@ -256,9 +257,13 @@ if __name__ == '__main__':
 
     print("Plotting...")
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(nrows=2, ncols=1)
+    ax = fig.add_subplot("211")
     ax.set_xlabel("Date")
     ax.set_ylabel("Dividend Yield (% / year)")
+    bx = fig.add_subplot("212")
+    bx.set_xlabel("Date")
+    bx.set_ylabel("Annualized Dividend ($ / year)")
 
     for stock in stocks:
         if stock.history[-1].annualDividend / stock.history[-1].price < 0.05:
@@ -266,17 +271,19 @@ if __name__ == '__main__':
         print(f"Updating plot with data from {stock.name}...")
         dates = []
         #prices = []
-        #dividends = []
+        dividends = []
         divYieldPercent = []
         for snapshot in stock.history:
             if snapshot.price == 0.0:
                 continue
             dates.append(snapshot.date)
             #prices.append(snapshot.price)
-            #dividends.append(snapshot.annualDividend)
+            dividends.append(snapshot.annualDividend)
             divYieldPercent.append(100. * snapshot.annualDividend / snapshot.price)
         ax.plot(dates, divYieldPercent, label=stock.symbol)
+        bx.plot(dates, dividends, label=stock.symbol)
     ax.legend()
+    bx.legend()
     plt.show()
         
     #fig, ax = plt.subplots()
