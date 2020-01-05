@@ -244,9 +244,7 @@ class Stock:
             return Stock(symbol=symbol)
 
 if __name__ == '__main__':
-    #symbols = [ 'SIG','WM', 'PEGI', 'F', 'PEIX', 'GPRE', 'FF', 'FTR', 'HOG', 'CECE', 'VOLVF', 'BIP',
-    #           'PIN', 'SMHB', 'LVHI', 'TSLA', 'LXU', 'TEVA']
-    symbols = [ 'SIG','PEGI', 'F', 'SMHB', 'LVHI']
+    from testSamples import symbols
     stocks = []
 
     for symbol in symbols:
