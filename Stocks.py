@@ -125,8 +125,7 @@ class Stock:
                 
             self.AddSnapshot(price=row['Open'], date=date, annualDividend=annualDividend)
             self.AddSnapshot(price=row['Close'], date=date, annualDividend=annualDividend)
-        print(f"History for {self.name} updated. Press any key...")
-        input()
+        print(f"History for {self.name} updated.")
 
     @staticmethod
     def FromYfinance(symbol):
