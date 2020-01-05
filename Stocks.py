@@ -127,6 +127,30 @@ class Stock:
             self.AddSnapshot(price=row['Close'], date=date, annualDividend=annualDividend)
         print(f"History for {self.name} updated.")
 
+    def AverageDividendPercent(self, years=10):
+        """
+        The average dividend yield over the specified period
+
+        Parameters:
+            years: The number of years into the past to average over.
+
+        Returns:
+            The average dividend yield percentage over the specified period
+        """
+        nSamples = 0
+        didividendSum = 0.
+        import datetime
+        now = datetime.datetime.now()
+        for index in range(len(self.history)):
+            snapshot = history[-1 - index]
+            if now - snapshot.date > datetime.timedelta(days=365.25*years):
+                break
+            nSamples += 1
+            didividendSum += snapshot.annualDividend
+        if nSamples == 0:
+            return 0.
+        return 100. * didividendSum / nSamples
+
     @staticmethod
     def FromYfinance(symbol):
         """
@@ -263,8 +287,9 @@ if __name__ == '__main__':
     bx.set_ylabel("Annualized Dividend ($ / year)")
 
     for stock in stocks:
-        if stock.history[-1].annualDividend / stock.history[-1].price < 0.05:
+        if stock.AverageDividendPercent(5) < 5.:
             continue
+            # Only plot stocks with dividends better than 5% per year.
         print(f"Updating plot with data from {stock.name}...")
         dates = []
         #prices = []
