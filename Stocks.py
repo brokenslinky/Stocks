@@ -138,18 +138,19 @@ class Stock:
             The average dividend yield percentage over the specified period
         """
         nSamples = 0
-        didividendSum = 0.
+        dividendSum = 0.
         import datetime
         now = datetime.datetime.now()
-        for index in range(len(self.history)):
-            snapshot = history[-1 - index]
+        for index in range(len(self._history)):
+            snapshot = self._history[-1 - index]
             if now - snapshot.date > datetime.timedelta(days=365.25*years):
                 break
             nSamples += 1
-            didividendSum += snapshot.annualDividend
+            dividendSum += snapshot.annualDividend / snapshot.price
         if nSamples == 0:
             return 0.
-        return 100. * didividendSum / nSamples
+        avgDiv = 100. * dividendSum / nSamples
+        return avgDiv
 
     @staticmethod
     def FromYfinance(symbol):
@@ -282,14 +283,20 @@ if __name__ == '__main__':
     ax = fig.add_subplot("211")
     ax.set_xlabel("Date")
     ax.set_ylabel("Dividend Yield (% / year)")
+    import datetime
+    from dateutil.parser import parse
+    ax.set_xlim(left=parse("1/1/2000"), right=datetime.datetime.now())
+    ax.set_ylim(bottom=0., top=50.)
     bx = fig.add_subplot("212")
     bx.set_xlabel("Date")
     bx.set_ylabel("Annualized Dividend ($ / year)")
+    bx.set_xlim(left=parse("1/1/2000"), right=datetime.datetime.now())
+    bx.set_ylim(bottom=0., top=50.)
 
     for stock in stocks:
-        if stock.AverageDividendPercent(5) < 5.:
+        if stock.AverageDividendPercent(10) < 7.2:
             continue
-            # Only plot stocks with dividends better than 5% per year.
+            # Only plot stocks with dividends better than 7.2% per year over the past 10 years.
         print(f"Updating plot with data from {stock.name}...")
         dates = []
         #prices = []
