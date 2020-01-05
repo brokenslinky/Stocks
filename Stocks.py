@@ -32,7 +32,7 @@ class Stock:
 
     @property
     def history(self):
-        """The known history of this Stock."""
+        """(List[Stock.Snapshot]) The known history of this Stock."""
         return self._history
     @history.setter
     def history(self, market):
@@ -200,12 +200,13 @@ class Stock:
         print("Warning: SaveToJSON not fully implemented.")
 
     @staticmethod
-    def ShyRetrieve(symbol):
+    def ShyRetrieve(symbol, downloadAll=None):
         """
         Retrieve a Stock from CSV if available, else retrieve the Stock from yfinance API.
         
         Parameters:
             symbol: The symbol used to identify this Stock in exchange markets
+            downloadAll (bool): Permission to download all missing Stocks from yfinance.
 
         Returns:
             A Stock pulled from local hard drive if available, pulled from yfinance API otherwise.
@@ -217,6 +218,11 @@ class Stock:
                 return Stock.ParseCSV("Stocks/" + file)
 
         def okayToDownload():
+            if downloadAll != None:
+                if downloadAll == True:
+                    return True
+                if downloadAll == False:
+                    return False
             print(f"{symbol} not found in local drive. Okay to download from yfinance? (y/n)")
             response = input()
             if response.lower() == "y":
@@ -243,7 +249,7 @@ if __name__ == '__main__':
     stocks = []
 
     for symbol in symbols:
-        stock = Stock.ShyRetrieve(symbol)
+        stock = Stock.ShyRetrieve(symbol=symbol, downloadAll=False)
         if len(stock._history) > 0:
             stocks.append(stock)
             print(f"{stocks[-1].name} added to stocks array. \n{len(stocks)} stocks are in the array.")
@@ -255,6 +261,8 @@ if __name__ == '__main__':
     ax.set_ylabel("Dividend Yield (% / year)")
 
     for stock in stocks:
+        if stock.history[-1].annualDividend / stock.history[-1].price < 0.05:
+            continue
         print(f"Updating plot with data from {stock.name}...")
         dates = []
         #prices = []
