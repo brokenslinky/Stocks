@@ -40,7 +40,14 @@ class Stock:
         self._history = history
 
     class Snapshot:
-        """A snapshot of the Stock at a single moment in time."""
+        """
+        A snapshot of the Stock at a single moment in time.
+
+        Members:
+            price (USD): The cost of one unit of Stock at this time.
+            date: The timestamp for this Snapshot.
+            annualDividend (USD/year): The total dividends paid in one year.
+        """
         import datetime
         def __init__(self, price, date=datetime.datetime.now(), annualDividend=0.):
             """
@@ -143,7 +150,7 @@ class Stock:
         now = datetime.datetime.now()
         for index in range(len(self._history)):
             snapshot = self._history[-1 - index]
-            if now - snapshot.date > datetime.timedelta(days=365.25*years):
+            if now - snapshot.date > datetime.timedelta(days=365*years):
                 break
             nSamples += 1
             dividendSum += snapshot.annualDividend / snapshot.price
@@ -151,6 +158,27 @@ class Stock:
             return 0.
         avgDiv = 100. * dividendSum / nSamples
         return avgDiv
+
+    def GrowthPercent(self, years=10):
+        """
+        The total growth over the specified period
+
+        Parameters:
+            year: The number of years into the past to compare against.
+
+        Returns:
+            The total growth over the specified period in percent.
+        """
+        lastYear = 0.
+        import datetime
+        today = datetime.datetime.now()
+        for index in range(0, len(self.history) - 1):
+            if today - self.history[index].date < datetime.timedelta(days=365*years):
+                lastYear = self.history[index].price
+                break
+        if lastYear == 0.:
+            return 0.
+        return 100. * (self.history[-1].price - lastYear) / lastYear
 
     @staticmethod
     def FromYfinance(symbol):
