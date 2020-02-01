@@ -10,10 +10,22 @@ def AskMinYield():
         return AskMinYield()
     return float(response)
 
+def AskYears():
+    print("How many years worth of data do you want to consider?")
+    response = input()
+    if response == "break":
+        return "break"
+    if response.isnumeric:
+        return float(response)
+    elif response == "":
+        return AskYears()
+    else:
+        print("That is not a number.")
+        return AskYears()
+
 def MainTestCase():
-    yearToConsider = 10
-    #symbols = [ 'SIG','PEGI', 'F', 'SMHB', 'LVHI', 'EPD', 'IBM', 'SIX', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
-    symbols = [ 'PEGI', 'EPD', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
+    symbols = [ 'TEVA', 'WM', 'SIG', 'PEGI', 'F', 'SMHB', 'LVHI', 'EPD', 'IBM', 'SIX', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
+    #symbols = [ 'PEGI', 'EPD', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
     from Stocks import Stock
     stocks = []
 
@@ -29,7 +41,10 @@ def MainTestCase():
     import matplotlib.pyplot as plt
 
     while True:
+        yearsToConsider = AskYears()
         minimumYield = AskMinYield()
+        if yearsToConsider == "break":
+            break
         if minimumYield == "break":
             break
 
@@ -55,15 +70,15 @@ def MainTestCase():
         cx.set_ylim(bottom=-100, top=100)
 
         for stock in stocks:
-            if today - stock.history[0].date < datetime.timedelta(days=365*yearToConsider):
+            if today - stock.history[0].date < datetime.timedelta(days=365*yearsToConsider):
                 continue
                 # Only plot stocks which have 10 years of data.
 
             filteredGrowth = 0.
-            for years in range(1, yearToConsider + 1):
-                filteredGrowth += stock.GrowthPercent(years)
-            filteredGrowth /= yearToConsider
-            annualYield = stock.AverageDividendPercent(yearToConsider) + filteredGrowth
+            for years in range(1, int(yearsToConsider) + 1):
+                filteredGrowth += stock.GrowthAPR(years)
+            filteredGrowth /= yearsToConsider
+            annualYield = stock.AverageDividendPercent(yearsToConsider) + filteredGrowth
             if annualYield < minimumYield:
                 continue
                 # Only plot stocks with combined margin better than 10% per year over the past 10 years.

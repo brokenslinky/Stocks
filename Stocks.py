@@ -169,16 +169,37 @@ class Stock:
         Returns:
             The total growth over the specified period in percent.
         """
-        lastYear = 0.
+        pastPrice = 0.
         import datetime
         today = datetime.datetime.now()
         for index in range(0, len(self.history) - 1):
             if today - self.history[index].date < datetime.timedelta(days=365*years):
-                lastYear = self.history[index].price
+                pastPrice = self.history[index].price
                 break
-        if lastYear == 0.:
+        if pastPrice == 0.:
             return 0.
         return 100. * (self.history[-1].price - lastYear) / lastYear
+
+    def GrowthAPR(self, years=10):
+        """
+        The growth over the specified period expressed as APR.
+
+        Parameters:
+            year: The number of years into the past to compare against.
+
+        Returns:
+            The effective APR over the specified period in percent.
+        """
+        pastPrice = 0.
+        import datetime
+        today = datetime.datetime.now()
+        for index in range(0, len(self.history) - 1):
+            if today - self.history[index].date < datetime.timedelta(days=365*years):
+                pastPrice = self.history[index].price
+                break
+        if pastPrice == 0.:
+            return 0.
+        return 100. * (self.history[-1].price / pastPrice) ** (1. / years) - 100.
 
     @staticmethod
     def FromYfinance(symbol):
