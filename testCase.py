@@ -15,31 +15,35 @@ def AskYears():
     response = input()
     if response == "break":
         return "break"
-    if response.isnumeric:
-        return float(response)
     elif response == "":
         return AskYears()
+    if response.isnumeric():
+        return float(response)
     else:
         print("That is not a number.")
         return AskYears()
 
 def MainTestCase():
-    symbols = [ 'TEVA', 'WM', 'SIG', 'PEGI', 'F', 'SMHB', 'LVHI', 'EPD', 'IBM', 'SIX', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
-    #symbols = [ 'PEGI', 'EPD', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
-    from Stocks import Stock
-    stocks = []
+    #symbols = [ 'TEVA', 'WM', 'SIG', 'PEGI', 'F', 'SMHB', 'LVHI', 'EPD', 'IBM', 'SIX', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
+    symbols = [ 'UVV', 'UG', 'CM', 'BCE', 'BNS', 'EPD']
 
+    # Import the modules now so it will crash before doing work if a module is missing.
+    from Stocks import Stock
+    import datetime
+    import matplotlib.pyplot as plt
+    from dateutil.parser import parse
+
+    # Pull the stock data into memory.
+    stocks = []
     for symbol in symbols:
-        stock = Stock.ShyRetrieve(symbol=symbol, downloadAll=True)
+        stock = Stock.ShyRetrieve(symbol=symbol, downloadAll=False)
         if len(stock._history) > 0:
             stocks.append(stock)
             print(f"{stocks[-1].name} added to stocks array. \n{len(stocks)} stocks are in the array.")
 
-    import datetime
     today = datetime.datetime.now()
 
-    import matplotlib.pyplot as plt
-
+    # In a loop so data stays in memory if the user wants to change parameters.
     while True:
         yearsToConsider = AskYears()
         minimumYield = AskMinYield()
@@ -48,29 +52,33 @@ def MainTestCase():
         if minimumYield == "break":
             break
 
+        startDate = today - datetime.timedelta(days = 365 * yearsToConsider)
+
         print("Plotting...")
-        fig, ax = plt.subplots(nrows=2, ncols=1)
-        ax = fig.add_subplot("311")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Dividend Yield (% / year)")
-        from dateutil.parser import parse
-        ax.set_xlim(left=parse("1/1/2000"), right=today)
-        ax.set_ylim(bottom=0., top=20.)
+        fig, subplots = plt.subplots(nrows=3, ncols=1)
+        dividend_plot = subplots[0]
+        growth_plot = subplots[1]
+        total_yield_plot = subplots[2]
+        dividend_plot.set_ylabel("Dividend (% / year)")
+        dividend_plot.set_xlim(left=startDate, right=today)
+        #dividend_plot.set_ylim(bottom=0., top=20.)
+        max_dividend = 0.
+        min_dividend = 0.
 
-        bx = fig.add_subplot("312")
-        bx.set_xlabel("Date")
-        bx.set_ylabel("Inflation Adjusted Growth (%)")
-        bx.set_xlim(left=parse("1/1/2000"), right=today)
-        bx.set_ylim(bottom=-100, top=100)
+        growth_plot.set_ylabel("Adjusted Growth (%)")
+        growth_plot.set_xlim(left=startDate, right=today)
+        #growth_plot.set_ylim(bottom=0, top=100)
+        max_growth = 0.
+        min_growth = 0.
 
-        cx = fig.add_subplot("313")
-        cx.set_xlabel("Date")
-        cx.set_ylabel("Annual Yield (%)")
-        cx.set_xlim(left=parse("1/1/2000"), right = today)
-        cx.set_ylim(bottom=-100, top=100)
+        total_yield_plot.set_ylabel("Annual Yield (%)")
+        total_yield_plot.set_xlim(left=startDate, right=today)
+        #total_yield_plot.set_ylim(bottom=-10, top=100)
+        max_total = 0.
+        min_total = 0.
 
         for stock in stocks:
-            if today - stock.history[0].date < datetime.timedelta(days=365*yearsToConsider):
+            if stock.history[0].date > startDate:
                 continue
                 # Only plot stocks which have enough history.
 
@@ -86,21 +94,30 @@ def MainTestCase():
             print(f"{stock.symbol} {annualYield}% annual yield")
             print("")
             dates = []
-            #prices = []
-            #dividends = []
             relGrowth = []
             divYieldPercent = []
             latest = stock.history[-1]
             for snapshot in stock.history:
+                if snapshot.date < startDate:
+                    continue
                 if snapshot.price == 0.0:
                     continue
                 dates.append(snapshot.date)
-                #prices.append(snapshot.price)
-                #dividends.append(snapshot.annualDividend)
                 relGrowth.append(100. * (snapshot.price / latest.price) * 1.02 ** (latest.date.year - snapshot.date.year))
                 divYieldPercent.append(100. * snapshot.annualDividend / snapshot.price)
-            ax.plot(dates, divYieldPercent, label=stock.symbol)
-            bx.plot(dates, relGrowth, label=stock.symbol)
+                if relGrowth[-1] > max_growth:
+                    max_growth = relGrowth[-1]
+                elif relGrowth[-1] < min_growth:
+                    min_growth = relrelGrowth[-1]
+                if divYieldPercent[-1] > 100.:
+                    print(f"{dates[-1]}: {stock.symbol} has {divYieldPercent[-1]}% dividend?")
+                if divYieldPercent[-1] > max_dividend:
+                    max_dividend = divYieldPercent[-1]
+                elif divYieldPercent[-1] < min_dividend:
+                    min_dividend = divYieldPercent[-1]
+
+            dividend_plot.plot(dates, divYieldPercent, label=stock.symbol)
+            growth_plot.plot(dates, relGrowth, label=stock.symbol)
 
             annualYield = []
             yDates = []
@@ -111,23 +128,23 @@ def MainTestCase():
                     continue
                 yDates.append(snapshot.date)
                 annualYield.append((100. * (snapshot.price - priceLastYear) + snapshot.annualDividend) / priceLastYear)
-            cx.plot(yDates, annualYield, label=stock.symbol)
+                if annualYield[-1] > max_total:
+                    max_total = annualYield[-1]
+                elif annualYield[-1] < min_total:
+                    min_total = annualYield[-1]
+            total_yield_plot.plot(yDates, annualYield, label=stock.symbol)
             
-        bx.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
-        cx.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
+        growth_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
+        total_yield_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
         fig.tight_layout()
         fig.autofmt_xdate()
-        ax.legend()
-        bx.legend()
-        cx.legend()
-        fig.show()
-        
-        #fig, ax = plt.subplots()
-        #bx = ax.twinx()
-        #ax.plot(dates, prices, label='Cost of Stock')
-        #ax.set_xlabel('Date')
-        #ax.set_ylabel('Cost Per Stock (USD)')
-        #bx.plot(dates, dividends, label='Annualized Dividends')
-        #bx.set_ylabel('Annualized Dividends (USD)')
-        #fig.tight_layout()
+        dividend_plot.set_ylim(bottom=min_dividend, top=max_dividend)
+        growth_plot.set_ylim(bottom=min_growth, top=max_growth)
+        total_yield_plot.set_ylim(bottom=min_total, top=max_total)
+        #dividend_plot.legend()
+        #growth_plot.legend()
+        total_yield_plot.legend()
         plt.show()
+
+if __name__ == "__main__":
+    MainTestCase()
