@@ -190,16 +190,23 @@ class Stock:
         Returns:
             The effective APR over the specified period in percent.
         """
-        pastPrice = 0.
+        pastPrice = self.history[-1].price
         import datetime
         today = datetime.datetime.now()
+        pastDate = self.history[-1].date
         for index in range(0, len(self.history) - 1):
-            if today - self.history[index].date < datetime.timedelta(days=365*years):
+            if today - self.history[index].date < datetime.timedelta(days=365.25*years):
+                # Assuming the stock data is in chronological order, the first result more recent than X years
+                # is a good enough approximation
                 pastPrice = self.history[index].price
+                pastDate = self.history[index].date
                 break
         if pastPrice == 0.:
             return 0.
-        return 100. * (self.history[-1].price / pastPrice) ** (1. / years) - 100.
+        n_years = (self.history[-1].date - pastDate).days / 365.25
+        if n_years == 0.:
+            return 0.
+        return 100. * (self.history[-1].price / pastPrice) ** (1. / n_years) - 100.
 
     @staticmethod
     def FromYfinance(symbol):
@@ -274,13 +281,14 @@ class Stock:
         print("Warning: SaveToJSON not fully implemented.")
 
     @staticmethod
-    def ShyRetrieve(symbol, downloadAll=None):
+    def ShyRetrieve(symbol, minDate=None, downloadMissing=None):
         """
         Retrieve a Stock from CSV if available, else retrieve the Stock from yfinance API.
         
         Parameters:
             symbol: The symbol used to identify this Stock in exchange markets
-            downloadAll (bool): Permission to download all missing Stocks from yfinance.
+            minDate (datetime): Downloads fresh data from yfinance if cached data is older than this date.
+            downloadMissing (bool): Permission to download all missing Stocks from yfinance.
 
         Returns:
             A Stock pulled from local hard drive if available, pulled from yfinance API otherwise.
@@ -289,14 +297,15 @@ class Stock:
         for file in os.listdir("Cache"):
             if file == f"{symbol}.csv":
                 print(f"Parsing {symbol} from local drive.")
-                return Stock.ParseCSV("Cache/" + file)
+                stock = Stock.ParseCSV("Cache/" + file)
+                if minDate == None or stock.history[-1].date >= minDate:
+                    return stock
 
         def okayToDownload():
-            if downloadAll != None:
-                if downloadAll == True:
-                    return True
-                if downloadAll == False:
-                    return False
+            if minDate != None:
+                return True
+            if downloadMissing != None:
+                return downloadMissing
             print(f"{symbol} not found in local drive. Okay to download from yfinance? (y/n)")
             response = input()
             if response.lower() == "y":
