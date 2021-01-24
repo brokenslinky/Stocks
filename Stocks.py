@@ -216,14 +216,14 @@ class Stock:
     def SaveToCSV(self):
         """Save this stock to a CSV file."""
         import csv 
-        csvfile = open(f"Stocks/{self.symbol}.csv", "w", newline='')
+        csvfile = open(f"Cache/{self.symbol}.csv", "w", newline='')
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow([self.symbol, self.name, self.market])
         writer.writerow(['Date', 'Price', 'Annualized Dividend'])
         for snapshot in self._history:
             writer.writerow([snapshot.date.strftime("%m/%d/%Y"), snapshot.price, snapshot.annualDividend])
         csvfile.close()
-        print(f"{self.name} saved to /Stocks/{self.symbol}.csv")
+        print(f"{self.name} saved to /Cache/{self.symbol}.csv")
 
     @staticmethod
     def ParseCSV(path):
@@ -264,7 +264,7 @@ class Stock:
         """
         import json
 
-        f = open(f"/Stocks/{self.symbol}.JSON", "w")
+        f = open(f"/Cache/{self.symbol}.JSON", "w")
         j = {"name": self.name, "symbol": self.symbol}
 
         f.write("{\"name\":\"" + str(self.name) + "\", ")
@@ -286,10 +286,10 @@ class Stock:
             A Stock pulled from local hard drive if available, pulled from yfinance API otherwise.
         """
         import os
-        for file in os.listdir("Stocks"):
+        for file in os.listdir("Cache"):
             if file == f"{symbol}.csv":
                 print(f"Parsing {symbol} from local drive.")
-                return Stock.ParseCSV("Stocks/" + file)
+                return Stock.ParseCSV("Cache/" + file)
 
         def okayToDownload():
             if downloadAll != None:

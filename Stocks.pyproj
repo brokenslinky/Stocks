@@ -28,7 +28,32 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Stocks\" />
+    <Folder Include="Cache\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Cache\BCE.csv" />
+    <Content Include="Cache\BIP.csv" />
+    <Content Include="Cache\BNS.csv" />
+    <Content Include="Cache\CM.csv" />
+    <Content Include="Cache\EPD.csv" />
+    <Content Include="Cache\F.csv" />
+    <Content Include="Cache\FF.csv" />
+    <Content Include="Cache\FTR.csv" />
+    <Content Include="Cache\GPRE.csv" />
+    <Content Include="Cache\HOG.csv" />
+    <Content Include="Cache\IBM.csv" />
+    <Content Include="Cache\LVHI.csv" />
+    <Content Include="Cache\PEGI.csv" />
+    <Content Include="Cache\PEIX.csv" />
+    <Content Include="Cache\PIN.csv" />
+    <Content Include="Cache\SIG.csv" />
+    <Content Include="Cache\SIX.csv" />
+    <Content Include="Cache\SMHB.csv" />
+    <Content Include="Cache\TEVA.csv" />
+    <Content Include="Cache\UG.csv" />
+    <Content Include="Cache\UVV.csv" />
+    <Content Include="Cache\VOLVF.csv" />
+    <Content Include="Cache\WM.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

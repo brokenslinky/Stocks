@@ -72,7 +72,7 @@ def MainTestCase():
         for stock in stocks:
             if today - stock.history[0].date < datetime.timedelta(days=365*yearsToConsider):
                 continue
-                # Only plot stocks which have 10 years of data.
+                # Only plot stocks which have enough history.
 
             filteredGrowth = 0.
             for years in range(1, int(yearsToConsider) + 1):
