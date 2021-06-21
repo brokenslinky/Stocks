@@ -147,16 +147,20 @@ class Stock:
         nSamples = 0
         dividendSum = 0.
         import datetime
+        import math
         now = datetime.datetime.now()
         for index in range(len(self._history)):
             snapshot = self._history[-1 - index]
             if now - snapshot.date > datetime.timedelta(days=365*years):
                 break
             nSamples += 1
-            dividendSum += snapshot.annualDividend / snapshot.price
+            if not math.isnan(snapshot.annualDividend / snapshot.price):
+                dividendSum += snapshot.annualDividend / snapshot.price
         if nSamples == 0:
             return 0.
         avgDiv = 100. * dividendSum / nSamples
+        if math.isnan(avgDiv):
+            return 0
         return avgDiv
 
     def GrowthPercent(self, years=10):
