@@ -17,21 +17,33 @@ def AskYears():
         return "break"
     elif response == "":
         return AskYears()
-    if response.isnumeric():
+    if response.replace('.','').isnumeric():
         return float(response)
     else:
         print("That is not a number.")
         return AskYears()
 
 def MainTestCase():
-    #symbols = [ 'TEVA', 'WM', 'SIG', 'PEGI', 'F', 'SMHB', 'LVHI', 'EPD', 'IBM', 'SIX', 'UVV', 'UG', 'CM', 'BCE', 'BNS']
-    symbols = [ 'CM', 'BCE', 'BNS', 'EPD', 'AMZN', 'GDDY', 'PRU']
+    plot = False
+
+    green   = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP']
+    energy  = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX']
+    telecom = ['BCE', 'T', 'VOD']
+    banks   = ['CM', 'BNS']
+    reits   = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE']
+    etfs    = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC']
+    crypto  = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
+    current_portfolio = ['CM', 'BNS', 'PRU', 'NHI', 'TRP', 'MSFT', 'BCE', 'AMZN', 'TEVA', 'NLY', 'BEP', 'WM', 'NEE']
+
+    symbols = list(set(current_portfolio) | set(green) | set(energy) | set(telecom) |
+        set(banks) | set(reits) | set(etfs) | set(crypto))
 
     # Import the modules now so it will crash before doing work if a module is missing.
     from Stocks import Stock
     import datetime
     import matplotlib.pyplot as plt
     from dateutil.parser import parse
+    import math
 
     # Pull the stock data into memory.
     stocks = []
@@ -53,25 +65,30 @@ def MainTestCase():
 
         startDate = today - datetime.timedelta(days = 365 * yearsToConsider)
 
-        print("Plotting...")
-        fig, subplots = plt.subplots(nrows=2, ncols=1)
-        dividend_plot = subplots[0]
-        #growth_plot = subplots[1]
-        total_yield_plot = subplots[1]
-        dividend_plot.set_ylabel("Dividend (%/yr)")
-        dividend_plot.set_xlim(left=startDate, right=today)
-        max_dividend = 0.
-        min_dividend = 0.
+        if plot:
+            print("Plotting...")
+            fig, subplots = plt.subplots(nrows=2, ncols=1)
+            dividend_plot = subplots[0]
+            #growth_plot = subplots[1]
+            total_yield_plot = subplots[1]
+            dividend_plot.set_ylabel("Dividend (%/yr)")
+            dividend_plot.set_xlim(left=startDate, right=today)
+            max_dividend = 0.
+            min_dividend = 0.
 
-        #growth_plot.set_ylabel("Growth Since (%/yr inflation adjusted)")
-        #growth_plot.set_xlim(left=startDate, right=today)
-        max_growth = 0.
-        min_growth = 0.
+            #growth_plot.set_ylabel("Growth Since (%/yr inflation adjusted)")
+            #growth_plot.set_xlim(left=startDate, right=today)
+            max_growth = 0.
+            min_growth = 0.
 
-        total_yield_plot.set_ylabel("Total Yield (%/yr)")
-        total_yield_plot.set_xlim(left=startDate, right=today)
+            total_yield_plot.set_ylabel("Total Yield (%/yr)")
+            total_yield_plot.set_xlim(left=startDate, right=today)
+
         max_total = 0.
         min_total = 0.
+
+        annual_yields = []
+        scores        = []
 
         for stock in stocks:
             if stock.history[0].date > startDate:
@@ -80,51 +97,64 @@ def MainTestCase():
 
             filteredGrowth = 0.
             for years in range(1, int(yearsToConsider) + 1):
-                filteredGrowth += stock.GrowthAPR(years)
+                growth = stock.GrowthAPR(years)
+                if not math.isnan(growth):
+                    filteredGrowth += growth
             filteredGrowth /= yearsToConsider
             annualYield = stock.AverageDividendPercent(yearsToConsider) + filteredGrowth
             if annualYield < minimumYield:
                 continue
                 # Only plot stocks with combined margin better than 10% per year over the past 10 years.
-            print(f"Updating plot with data from {stock.name}...")
-            print(f"{stock.symbol} {annualYield}% annual yield")
-            print("")
-            dates = []
-            relGrowth = []
-            divYieldPercent = []
-            latest = stock.history[-1]
-            for snapshot in stock.history:
-                if snapshot.date < startDate:
-                    continue
-                if snapshot.price == 0.0:
-                    continue
-                if (latest.date - snapshot.date).days == 0.0:
-                    continue
-                annual_growth = 100. * (latest.price / snapshot.price - 1.) * 1.02 ** ((snapshot.date - latest.date).days / 365.25) / \
-                    ((latest.date - snapshot.date).days / 365.25)
-                if annual_growth > 1. * (latest.date - snapshot.date).days:
-                    annual_growth = 1. * (latest.date - snapshot.date).days
-                if annual_growth < -1. * (latest.date - snapshot.date).days:
-                    annual_growth = -1. * (latest.date - snapshot.date).days
-                dates.append(snapshot.date)
-                relGrowth.append(annual_growth)
-                divYieldPercent.append(100. * snapshot.annualDividend / snapshot.price)
-                if relGrowth[-1] > max_growth:
-                    max_growth = relGrowth[-1]
-                elif relGrowth[-1] < min_growth:
-                    min_growth = relGrowth[-1]
-                if divYieldPercent[-1] > 100.:
-                    print(f"{dates[-1]}: {stock.symbol} has {divYieldPercent[-1]}% dividend?")
-                if divYieldPercent[-1] > max_dividend:
-                    max_dividend = divYieldPercent[-1]
-                elif divYieldPercent[-1] < min_dividend:
-                    min_dividend = divYieldPercent[-1]
+            print(f"{stock.symbol} {annualYield:.2f}% average annual yield over the past {years} years.")
+            print(f"{filteredGrowth:.2f}% from growth and {stock.AverageDividendPercent(yearsToConsider):.2f}% from dividends.")
+            annual_yields.append((stock.symbol, annualYield))
 
-            dividend_plot.plot(dates, divYieldPercent, label=stock.symbol)
-            #growth_plot.plot(dates, relGrowth, label=stock.symbol)
+            score = annualYield
+            # Bias away from cryptocurrencies
+            if '-USD' in stock.symbol:
+                score /= 2.
+            # Bias towards dividends
+            score += stock.AverageDividendPercent(yearsToConsider)
+            scores.append((stock.symbol, score))
+
+            if plot:
+                dates = []
+                relGrowth = []
+                divYieldPercent = []
+                latest = stock.history[-1]
+                for snapshot in stock.history:
+                    if snapshot.date < startDate:
+                        continue
+                    if snapshot.price == 0.0:
+                        continue
+                    if (latest.date - snapshot.date).days == 0.0:
+                        continue
+                    annual_growth = 100. * (latest.price / snapshot.price - 1.) * 1.02 ** ((snapshot.date - latest.date).days / 365.25) / \
+                        ((latest.date - snapshot.date).days / 365.25)
+                    if annual_growth > 1. * (latest.date - snapshot.date).days:
+                        annual_growth = 1. * (latest.date - snapshot.date).days
+                    if annual_growth < -1. * (latest.date - snapshot.date).days:
+                        annual_growth = -1. * (latest.date - snapshot.date).days
+                    dates.append(snapshot.date)
+                    relGrowth.append(annual_growth)
+                    divYieldPercent.append(100. * snapshot.annualDividend / snapshot.price)
+                    if relGrowth[-1] > max_growth:
+                        max_growth = relGrowth[-1]
+                    elif relGrowth[-1] < min_growth:
+                        min_growth = relGrowth[-1]
+                    if divYieldPercent[-1] > 100.:
+                        print(f"{dates[-1]}: {stock.symbol} has {divYieldPercent[-1]}% dividend?")
+                        print("You may not want to trust this data...")
+                    if divYieldPercent[-1] > max_dividend:
+                        max_dividend = divYieldPercent[-1]
+                    elif divYieldPercent[-1] < min_dividend:
+                        min_dividend = divYieldPercent[-1]
+
+                dividend_plot.plot(dates, divYieldPercent, label=stock.symbol)
+                #growth_plot.plot(dates, relGrowth, label=stock.symbol)
 
             annualYield = []
-            yDates = []
+            yDates      = []
             for index in range(200, len(stock.history)):
                 snapshot = stock.history[index]
                 if snapshot.date < startDate:
@@ -138,19 +168,54 @@ def MainTestCase():
                     max_total = annualYield[-1]
                 elif annualYield[-1] < min_total:
                     min_total = annualYield[-1]
-            total_yield_plot.plot(yDates, annualYield, label=stock.symbol)
-            
-        #growth_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
-        total_yield_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
-        fig.tight_layout()
-        fig.autofmt_xdate()
-        dividend_plot.set_ylim(bottom=min_dividend, top=max_dividend)
-        #growth_plot.set_ylim(bottom=min_growth, top=max_growth)
-        total_yield_plot.set_ylim(bottom=min_total, top=max_total)
-        dividend_plot.legend()
-        #growth_plot.legend()
-        #total_yield_plot.legend()
-        plt.show()
+            if plot:
+                total_yield_plot.plot(yDates, annualYield, label=stock.symbol)
+                
+        annual_yields.sort(key=lambda x:x[1])
+        annual_yields.reverse()
+        scores.sort(key=lambda x:x[1])
+        scores.reverse()
+
+        # Recommend how much would have been good to allocated to each
+        number_of_recommendations = 0
+        sum = 0
+        for candidate in scores:
+            if not math.isnan(candidate[1]):
+                sum += candidate[1]
+            if sum > 0.:
+                if candidate[1] / sum < 0.05:
+                    break
+            number_of_recommendations += 1
+        print("Recommended distribution:")
+        recommendations = []
+        for i in range(number_of_recommendations):
+            symbol = scores[i][0]
+            recommended_percent = 100 * scores[i][1] / sum
+            recommendations.append((symbol, recommended_percent))
+            print(f"{recommended_percent:.2f}% in {symbol}    Score: {scores[i][1]}")
+
+        import winsound
+        winsound.Beep(300, 500)
+
+        if plot:
+            fig.tight_layout()
+            fig.autofmt_xdate()
+
+            #growth_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
+            total_yield_plot.plot([parse("1/1/2000"), today], [0, 0], label='Zero')
+
+            dividend_plot.set_ylim(bottom=min_dividend, top=max_dividend)
+            #growth_plot.set_ylim(bottom=min_growth, top=max_growth)
+            total_yield_plot.set_ylim(bottom=min_total, top=max_total)
+
+            dividend_plot.tick_params(labelleft=True, left=True, right=True, bottom=True)
+            #growth_plot.tick_params(labelleft=True, left=True, right=True, bottom=True)
+            total_yield_plot.tick_params(labelleft=True, left=True, right=True, bottom=True, labelbottom=True)
+
+            dividend_plot.legend()
+            #growth_plot.legend()
+            #total_yield_plot.legend()
+            plt.show()
 
 if __name__ == "__main__":
     MainTestCase()
