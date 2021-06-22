@@ -198,6 +198,7 @@ class Stock:
         import datetime
         today = datetime.datetime.now()
         pastDate = self.history[-1].date
+        # TODO: This is an inefficient way to look up a specific date
         for index in range(0, len(self.history) - 1):
             if today - self.history[index].date < datetime.timedelta(days=365.25*years):
                 # Assuming the stock data is in chronological order, the first result more recent than X years
@@ -211,6 +212,43 @@ class Stock:
         if n_years == 0.:
             return 0.
         return 100. * (self.history[-1].price / pastPrice) ** (1. / n_years) - 100.
+
+    def GrowthAPRWithUncertainty(self, years=10):
+        """
+        The growth over the specified period expressed as APR.
+
+        Parameters:
+            year: The number of years into the past to compare against.
+
+        Returns:
+            Tuple: The effective APR over the specified period, and associated uncertainy. Both in percent.
+        """
+        import math, datetime
+
+        average_annual = self.GrowthAPR(years) / 100.
+        average_daily = math.pow(1 + average_annual, 1 / 365) - 1.
+        
+        i = 0
+        today = datetime.datetime.now()
+        while i < len(self.history):
+            if today - self.history[i].date < datetime.timedelta(days=365.25*years):
+                break
+            i += 1
+        uncertainty = 0.
+        filter_days = 20
+        n_samples = 0
+        while i < len(self.history):
+            today = self.history[i].price
+            previous = self.history[i - 1].price
+            change = (today - previous) / previous
+            uncertainty += ((1. + change) ** (1 / filter_days) - (1. + average_daily)) ** 2
+            n_samples += 1
+            i += filter_days
+        uncertainty /= n_samples - 1.
+        uncertainty = math.sqrt(uncertainty)
+        uncertainty *= 365.25 * (1. + average_annual)
+
+        return (100. * average_annual, 100. * uncertainty)
 
     @staticmethod
     def FromYfinance(symbol):

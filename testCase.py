@@ -54,6 +54,10 @@ def MainTestCase():
 
     today = datetime.datetime.now()
 
+    # Let the user know import is complete
+    import winsound
+    winsound.Beep(600, 100)
+
     # In a loop so data stays in memory if the user wants to change parameters.
     while True:
         yearsToConsider = AskYears()
@@ -95,26 +99,16 @@ def MainTestCase():
                 continue
                 # Only plot stocks which have enough history.
 
-            filteredGrowth = 0.
-            for years in range(1, int(yearsToConsider) + 1):
-                growth = stock.GrowthAPR(years)
-                if not math.isnan(growth):
-                    filteredGrowth += growth
-            filteredGrowth /= yearsToConsider
+            filteredGrowth, uncertainty = stock.GrowthAPRWithUncertainty(yearsToConsider)
             annualYield = stock.AverageDividendPercent(yearsToConsider) + filteredGrowth
             if annualYield < minimumYield:
                 continue
                 # Only plot stocks with combined margin better than 10% per year over the past 10 years.
-            print(f"{stock.symbol} {annualYield:.2f}% average annual yield over the past {years} years.")
+            print(f"{stock.symbol} {annualYield:.1f} ± {uncertainty:.1f}% average annual yield over the past {yearsToConsider} years.")
             print(f"{filteredGrowth:.2f}% from growth and {stock.AverageDividendPercent(yearsToConsider):.2f}% from dividends.")
             annual_yields.append((stock.symbol, annualYield))
 
-            score = annualYield
-            # Bias away from cryptocurrencies
-            if '-USD' in stock.symbol:
-                score /= 2.
-            # Bias towards dividends
-            score += stock.AverageDividendPercent(yearsToConsider)
+            score = annualYield - 0.675 * uncertainty # 25th percentile
             scores.append((stock.symbol, score))
 
             if plot:
@@ -184,7 +178,11 @@ def MainTestCase():
                 sum += candidate[1]
             if sum > 0.:
                 if candidate[1] / sum < 0.05:
+                    sum -= candidate[1]
                     break
+            if sum < 0.:
+                sum -= candidate[1]
+                break
             number_of_recommendations += 1
         print("Recommended distribution:")
         recommendations = []
@@ -192,9 +190,8 @@ def MainTestCase():
             symbol = scores[i][0]
             recommended_percent = 100 * scores[i][1] / sum
             recommendations.append((symbol, recommended_percent))
-            print(f"{recommended_percent:.2f}% in {symbol}    Score: {scores[i][1]}")
+            print(f"{recommended_percent:.2f}% in {symbol}    Score: {scores[i][1]:.2f}")
 
-        import winsound
         winsound.Beep(300, 500)
 
         if plot:

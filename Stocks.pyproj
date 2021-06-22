@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>55921bfc-e034-48d6-a052-dcf1d9ec192a</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>testCase.py</StartupFile>
+    <StartupFile>Stocks.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
