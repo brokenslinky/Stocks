@@ -163,6 +163,37 @@ class Stock:
             return 0
         return avgDiv
 
+    def DividendPercentUncertainty(self, years=10):
+        '''
+        The uncertainty in dividend yield over the specified period
+
+        Parameters:
+            years: The number of years into the past to average over.
+
+        Returns:
+            The average dividend yield percentage over the specified period
+        '''
+        average_dividend = self.AverageDividendPercent(years)
+        nSamples = 0
+        uncertainty = 0.
+        import datetime
+        import math
+        now = datetime.datetime.now()
+        for index in range(len(self._history)):
+            snapshot = self._history[-1 - index]
+            if now - snapshot.date > datetime.timedelta(days=365*years):
+                break
+            nSamples += 1
+            if not math.isnan(snapshot.annualDividend / snapshot.price):
+                uncertainty += (snapshot.annualDividend / snapshot.price - average_dividend) ** 2
+        if nSamples == 0:
+            return average_dividend
+        uncertainty /= nSamples - 1.
+        uncertainty = math.sqrt(uncertainty)
+        if math.isnan(uncertainty):
+            return average_dividend
+        return uncertainty
+
     def GrowthPercent(self, years=10):
         """
         The total growth over the specified period

@@ -24,6 +24,7 @@ def AskYears():
         return AskYears()
 
 def MainTestCase():
+
     plot = False
 
     green   = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP']
@@ -35,8 +36,14 @@ def MainTestCase():
     crypto  = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
     current_portfolio = ['CM', 'BNS', 'PRU', 'NHI', 'TRP', 'MSFT', 'BCE', 'AMZN', 'TEVA', 'NLY', 'BEP', 'WM', 'NEE']
 
-    symbols = list(set(current_portfolio) | set(green) | set(energy) | set(telecom) |
-        set(banks) | set(reits) | set(etfs) | set(crypto))
+    # Exclude the ones which don't perform as well so setup is faster.
+    exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
+
+    symbols = list((set(current_portfolio) | set(green) | set(energy) | set(telecom) |
+        set(banks) | set(reits) | set(etfs) | set(crypto)) - set(exclude))
+    
+    top_five = ['ABR', 'BTC-USD', 'MSFT', 'ETH-USD', 'AGNC']
+    #symbols = top_five
 
     # Import the modules now so it will crash before doing work if a module is missing.
     from Stocks import Stock
@@ -99,16 +106,20 @@ def MainTestCase():
                 continue
                 # Only plot stocks which have enough history.
 
-            filteredGrowth, uncertainty = stock.GrowthAPRWithUncertainty(yearsToConsider)
-            annualYield = stock.AverageDividendPercent(yearsToConsider) + filteredGrowth
+            filteredGrowth, growthUncertainty = stock.GrowthAPRWithUncertainty(yearsToConsider)
+            dividendYield = stock.AverageDividendPercent(yearsToConsider)
+            dividendUncertainty = stock.DividendPercentUncertainty(yearsToConsider)
+            if dividendUncertainty > dividendYield:
+                dividendUncertainty = dividendYield # Never apply a penalty for dividends
+            annualYield = dividendYield + filteredGrowth
             if annualYield < minimumYield:
                 continue
                 # Only plot stocks with combined margin better than 10% per year over the past 10 years.
-            print(f"{stock.symbol} {annualYield:.1f} ± {uncertainty:.1f}% average annual yield over the past {yearsToConsider} years.")
+            print(f"{stock.symbol} {annualYield:.1f} ± {growthUncertainty + dividendUncertainty:.1f}% average annual yield over the past {yearsToConsider} years.")
             print(f"{filteredGrowth:.2f}% from growth and {stock.AverageDividendPercent(yearsToConsider):.2f}% from dividends.")
             annual_yields.append((stock.symbol, annualYield))
 
-            score = annualYield - 0.675 * uncertainty # 25th percentile
+            score = annualYield - 0.431 * (growthUncertainty + dividendUncertainty) # 33rd percentile
             scores.append((stock.symbol, score))
 
             if plot:
