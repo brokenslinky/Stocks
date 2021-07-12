@@ -296,15 +296,18 @@ class Stock:
         y               = []
         total_dividends = 0.
         today = datetime.datetime.now()
+        i = 0
         while i < len(self.history):
             if today - self.history[i].date < datetime.timedelta(days=365.25*years):
                 break
             i += 1
         while i < len(self.history):
             total_dividends += self.history[i].dividend
-            t.append((self.history[i].date - today).total_seconds / 31557600.)
-            y.append(self.price + total_dividends)
-        apr_fit = AprFit(t, y)
+            t.append((self.history[i].date - today).total_seconds() / 31557600.)
+            y.append(self.history[i].price + total_dividends)
+            i += 1
+        apr_fit = AprFit.AprFit(t, y)
+        #apr_fit.plot(t, y)
         return apr_fit
 
     @staticmethod
