@@ -46,20 +46,28 @@ class Stock:
         Members:
             price (USD): The cost of one unit of Stock at this time.
             date: The timestamp for this Snapshot.
+            dividend (USD): The dividend paid on this day.
             annualDividend (USD/year): The total dividends paid in one year.
         """
         import datetime
-        def __init__(self, price, date=datetime.datetime.now(), annualDividend=0.):
+        price          : float
+        date           : datetime.datetime
+        dividend       : float
+        annualDividend : float
+
+        def __init__(self, price, date=datetime.datetime.now(), dividend=0., annualDividend=0.):
             """
             Create a new Stock Snapshot
 
             Parameters:
                 price (USD): The cost of one unit of Stock at this time.
                 date: The timestamp for this Snapshot.
+                dividend (USD): The dividend paid on this day
                 annualDividend (USD/year): The total dividends paid in one year.
             """
-            self.price = price
-            self.date = date
+            self.price          = price
+            self.date           = date
+            self.dividend       = dividend
             self.annualDividend = annualDividend
 
     def __init__(self, symbol, name=None, market=None, history=None):
@@ -82,7 +90,7 @@ class Stock:
         else:
             self._history = []
         
-    def AddSnapshot(self, price, date=datetime.datetime.now(), annualDividend=0.):
+    def AddSnapshot(self, price, date=datetime.datetime.now(), dividend=0., annualDividend=0.):
         """
         Add a Snapshot to the Stock's history.
 
@@ -91,7 +99,7 @@ class Stock:
             date: The timestamp for this Snapshot.
             annualDividend (USD/year): The total dividends paid in one year.
         """
-        self._AddSnapshot(self.Snapshot(price=price, date=date, annualDividend=annualDividend))
+        self._AddSnapshot(self.Snapshot(price=price, date=date, dividend=dividend, annualDividend=annualDividend))
         
     def _AddSnapshot(self, snapshot):
         """
@@ -118,8 +126,9 @@ class Stock:
 
         dividends = []
         for date, row in yhistory.iterrows():
-            dividends.append((date, row['Dividends']))
-            if row['Dividends'] != 0.:
+            dividend_today = row['Dividends']
+            dividends.append((date, dividend_today))
+            if dividend_today != 0.:
                 while date - dividends[0][0] > datetime.timedelta(days=360):
                     dividends.remove(dividends[0])
             else:
@@ -130,8 +139,8 @@ class Stock:
             for dividend in dividends:
                 annualDividend += dividend[1]
                 
-            self.AddSnapshot(price=row['Open'], date=date, annualDividend=annualDividend)
-            self.AddSnapshot(price=row['Close'], date=date, annualDividend=annualDividend)
+            self.AddSnapshot(price=row['Open'], date=date, dividend=dividend_today, annualDividend=annualDividend)
+            #self.AddSnapshot(price=row['Close'], date=date, annualDividend=annualDividend)
         print(f"History for {self.name} updated.")
 
     def AverageDividendPercent(self, years=10):
@@ -281,6 +290,23 @@ class Stock:
 
         return (100. * average_annual, 100. * uncertainty)
 
+    def get_apr_fit(self, years=10.):
+        import AprFit, datetime
+        t               = []
+        y               = []
+        total_dividends = 0.
+        today = datetime.datetime.now()
+        while i < len(self.history):
+            if today - self.history[i].date < datetime.timedelta(days=365.25*years):
+                break
+            i += 1
+        while i < len(self.history):
+            total_dividends += self.history[i].dividend
+            t.append((self.history[i].date - today).total_seconds / 31557600.)
+            y.append(self.price + total_dividends)
+        apr_fit = AprFit(t, y)
+        return apr_fit
+
     @staticmethod
     def FromYfinance(symbol):
         """
@@ -299,9 +325,9 @@ class Stock:
         csvfile = open(f"Cache/{self.symbol}.csv", "w", newline='')
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow([self.symbol, self.name, self.market])
-        writer.writerow(['Date', 'Price', 'Annualized Dividend'])
+        writer.writerow(['Date', 'Price', 'Dividend', 'Annualized Dividend'])
         for snapshot in self._history:
-            writer.writerow([snapshot.date.strftime("%m/%d/%Y"), snapshot.price, snapshot.annualDividend])
+            writer.writerow([snapshot.date.strftime("%m/%d/%Y"), snapshot.price, snapshot.dividend, snapshot.annualDividend])
         csvfile.close()
         print(f"{self.name} saved to /Cache/{self.symbol}.csv")
 
@@ -331,7 +357,7 @@ class Stock:
                 stock.market = row[2]
             elif rowNum > 1:
                 #row[1] is header information "date, price, dividend"
-                stock.AddSnapshot(price=float(row[1]), date=parse(row[0]), annualDividend=float(row[2]))
+                stock.AddSnapshot(price=float(row[1]), date=parse(row[0]), dividend=float(row[2]), annualDividend=float(row[3]))
             rowNum += 1
 
         csvfile.close()
@@ -400,5 +426,5 @@ class Stock:
             return Stock(symbol=symbol)
 
 if __name__ == '__main__':
-    from testCase import MainTestCase
-    MainTestCase()
+    from testCase import MainTestCase, TestCaseWithFit
+    TestCaseWithFit()

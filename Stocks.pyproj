@@ -22,6 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AprFit.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Stocks.py" />
     <Compile Include="testCase.py">
       <SubType>Code</SubType>
