@@ -24,38 +24,40 @@ def AskYears():
         return AskYears()
 
 # Define the symbols we want to use for test cases
-green   = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP']
-energy  = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX']
-telecom = ['BCE', 'T', 'VOD']
+green   = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', 'SMOG', 'PDB', 'ERTH']
+energy  = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE']
+utility = ['BCE', 'T', 'VOD', 'WM']
 banks   = ['CM', 'BNS']
-reits   = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE']
-etfs    = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC']
+reits   = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY']
+etfs    = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC', 'PRU']
 crypto  = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
-current_portfolio = ['CM', 'BNS', 'PRU', 'NHI', 'TRP', 'MSFT', 'BCE', 'AMZN', 'TEVA', 'NLY', 'BEP', 'WM', 'NEE']
+tech    = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ']
 
 # Exclude the ones which don't perform as well so setup is faster.
 exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
 
-symbols = list((set(current_portfolio) | set(green) | set(energy) | set(telecom) |
-    set(banks) | set(reits) | set(etfs) | set(crypto)) - set(exclude))
+symbols = list((set(green) | set(energy) | set(utility) | set(banks) | set(reits) | set(etfs) | set(crypto) | set(tech)) - set(exclude))
     
-top_five = ['ABR', 'BTC-USD', 'MSFT', 'ETH-USD', 'AGNC']
-#symbols = list(set(top_five) | set(['BCE']))
+top_five = ['MSFT', 'AMZN', 'NEE', 'BEP', 'ORC']
+#symbols = list(set(top_five))
+
+plot = False
 
 # Import the class now since it will be used for all test cases
 from Stocks import Stock
-import datetime
+import datetime, math
 
 class Score:
     ''' Structure to store scores of the different stock in test cases '''
-    symbol : str
-    score  : float
-    def __init__(self, symbol:str, score:float):
-        self.symbol = symbol
-        self.score  = score
+    stock : Stock
+    score : float
+    def __init__(self, stock:Stock, score:float):
+        self.stock = stock
+        self.score = score
 
 def TestCaseWithFit():
-    import AprFit, winsound
+    from AprFit import AprFit
+    from winsound import Beep
     
     # Pull the stock data into memory.
     stocks = []
@@ -64,7 +66,7 @@ def TestCaseWithFit():
         if len(stock._history) > 0:
             stocks.append(stock)
     
-    winsound.Beep(300, 500) # Let the user know it's done importing
+    Beep(300, 500) # Let the user know it's done importingscore.symbol
 
     today = datetime.datetime.now()
 
@@ -78,59 +80,81 @@ def TestCaseWithFit():
             break
         scores = []
 
-        startDate = today - datetime.timedelta(days = 365 * yearsToConsider)
+        startDate = today - datetime.timedelta(seconds = 366 * yearsToConsider)
 
         for stock in stocks:
             if stock.history[0].date > startDate:
                 continue
                 # Only plot stocks which have enough history.
 
-            apr_fit = stock.get_apr_fit()
+            try:
+                apr_fit = stock.get_apr_fit(years=yearsToConsider)
+            except:
+                # Looks like I need to do some sanitizing of the data from yFinance. BEP hits a math domain error here and previously gave strange results in other tests.
+                print(f"Failed to fit curve onto data from {stock.symbol}")
+                continue
 
             # Determine how much this stock is currently overvalued/undervalued
-            total_dividends_since_t_0 : float
-            index = -1
-            while (today - stock.history[index]).total_seconds / 31557600. >= apr_fit.t_0:
+            total_dividends_since_t_0 = 0.
+            index = len(stock.history) - 1
+            while (stock.history[index].date - today).total_seconds() >= apr_fit.t_0 * 31557600.:
                 total_dividends_since_t_0 += stock.history[index].dividend
+                if index == 0:
+                    break
+                index -= 1
             undervalue = apr_fit.y_0 * (1 + apr_fit.rate) ** (0. - apr_fit.t_0) - (stock.history[-1].price + total_dividends_since_t_0)
+            undervalue /= stock.history[-1].price + total_dividends_since_t_0
 
-            score = Score(stock.symbol, (apr_fit.rate + undevalue) * (1. - 0.431 * apr_fit.stdev))
+            N_STDEVS = 2. # Number of standard deviations to use for fitness
+            if apr_fit.stdev * N_STDEVS > 1.:
+                score = Score(stock, 0.)
+            else:
+                score = Score(stock, 100. * (apr_fit.rate + undervalue / 8.) * (1. - N_STDEVS * apr_fit.stdev) - apr_fit.stdev * N_STDEVS)
+                # stdev applies as both uncertainty in the fit and as potential loss
+
+            # Bias towards green investments
+            if stock.symbol in green:
+                score.score *= 1.25
+
+            # Attach metadata to the score so I can print it.
+            score.rate        = 100. * apr_fit.rate
+            score.undervalue  = 100. * undervalue
+            score.uncertainty = 100. * apr_fit.stdev
+            scores.append(score)
 
         scores.sort(key=lambda x:x.score)
-        scores.reverse
+        scores.reverse()
 
         # Recommend how much would have been good to allocated to each
         number_of_recommendations = 0
         sum = 0
         for candidate in scores:
-            if not math.isnan(candidate.score):
-                sum += candidate.score
-            if sum > 0.:
-                if candidate.score / sum < 0.05:
-                    sum -= candidate[1]
-                    break
-            if sum < 0.:
+            if math.isnan(candidate.score):
+                continue
+            if candidate.score <= 0.:
+                continue
+            sum += candidate.score
+            if candidate.score / sum < 0.05:
                 sum -= candidate.score
                 break
             number_of_recommendations += 1
         print("Recommended distribution:")
         recommendations = []
         for i in range(number_of_recommendations):
-            symbol = scores[i].symbol
+            stock = scores[i].stock
             recommended_percent = 100 * scores[i].score / sum
-            recommendations.append((symbol, recommended_percent))
-            print(f"{recommended_percent:.2f}% in {symbol}    Score: {scores[i].score:.2f}")
+            print(f"{recommended_percent:.2f}% in {stock.symbol}    Score: {scores[i].score:.2f}    <APR>: {scores[i].rate:.2f}    undervalued by {scores[i].undervalue:.2f}%    uncertainty: {scores[i].uncertainty:.2f}%")
 
-        winsound.Beep(300, 500)
+            if plot:
+                stock.get_apr_fit(years=yearsToConsider, plot=True)
+
+        Beep(300, 500)
 
 def MainTestCase():
-
-    plot = True
 
     # Import the modules now so it will crash before doing work if a module is missing.
     import matplotlib.pyplot as plt
     from dateutil.parser import parse
-    import math
 
     # Pull the stock data into memory.
     stocks = []

@@ -290,7 +290,10 @@ class Stock:
 
         return (100. * average_annual, 100. * uncertainty)
 
-    def get_apr_fit(self, years=10.):
+    def get_apr_fit(self, years=10., plot=False):
+        '''
+        Get a curve fitted to the data with the form y = y_0 * (1 + rate) ^ t where "t" is the number of years from today
+        '''
         import AprFit, datetime
         t               = []
         y               = []
@@ -307,7 +310,8 @@ class Stock:
             y.append(self.history[i].price + total_dividends)
             i += 1
         apr_fit = AprFit.AprFit(t, y)
-        #apr_fit.plot(t, y)
+        if plot:
+            apr_fit.plot(t, y)
         return apr_fit
 
     @staticmethod
