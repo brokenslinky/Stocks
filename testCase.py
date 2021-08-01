@@ -80,7 +80,7 @@ def TestCaseWithFit():
             break
         scores = []
 
-        startDate = today - datetime.timedelta(seconds = 366 * yearsToConsider)
+        startDate = today - datetime.timedelta(seconds = 366 * yearsToConsider * 60 * 60 * 24)
 
         for stock in stocks:
             if stock.history[0].date > startDate:
@@ -150,7 +150,7 @@ def TestCaseWithFit():
 
         Beep(300, 500)
 
-def MainTestCase():
+def OriginalTestCase():
 
     # Import the modules now so it will crash before doing work if a module is missing.
     import matplotlib.pyplot as plt

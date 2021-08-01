@@ -433,5 +433,6 @@ class Stock:
             return Stock(symbol=symbol)
 
 if __name__ == '__main__':
-    from testCase import MainTestCase, TestCaseWithFit
+    from testCase import OriginalTestCase, TestCaseWithFit
     TestCaseWithFit()
+    #OriginalTestCase()
