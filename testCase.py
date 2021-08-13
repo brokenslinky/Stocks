@@ -38,6 +38,9 @@ indexes   = ['^DJI', '^IXIC'] # Yahoo's record for INX is not right.
 # Exclude the ones which don't perform as well so setup is faster.
 exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
 
+# Some which I don't like. Nerf them by 20%
+nerf = ['ETC-USD', 'AAPL']
+
 symbols = list((set(green) | set(energy) | set(materials) | set(utility) | set(banks) | set(reits) | set(etfs) | set(crypto) | set(tech)) - set(exclude))
     
 top_five = ['ADA-USD', 'MSFT', 'ETH-USD', 'AAPLE', 'AMZN']
@@ -114,6 +117,10 @@ def TestCaseWithFit():
             # Bias towards green investments
             if stock.symbol in green:
                 score.score *= 1.25
+
+            # Nerf the stocks I don't like
+            if stock.symbol in nerf:
+                score.score *= 0.8
 
             # Attach metadata to the score so I can print it.
             score.rate        = 100. * apr_fit.rate
