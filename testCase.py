@@ -24,21 +24,23 @@ def AskYears():
         return AskYears()
 
 # Define the symbols we want to use for test cases
-green   = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', 'SMOG', 'PDB', 'ERTH']
-energy  = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE']
-utility = ['BCE', 'T', 'VOD', 'WM']
-banks   = ['CM', 'BNS']
-reits   = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY']
-etfs    = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC', 'PRU']
-crypto  = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
-tech    = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ']
+green     = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', 'SMOG', 'PDB', 'ERTH', 'CWEN', 'FSLR', 'TSLA', 'NIO']
+energy    = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE', 'CWEN']
+materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 'APD', 'FCX', 'LTHM', 'LAC']
+utility   = ['BCE', 'T', 'VOD', 'WM']
+banks     = ['CM', 'BNS', 'COIN']
+reits     = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY']
+etfs      = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC', 'PRU']
+crypto    = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
+tech      = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ', 'AMD']
+indexes   = ['^DJI', '^IXIC'] # Yahoo's record for INX is not right.
 
 # Exclude the ones which don't perform as well so setup is faster.
 exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
 
-symbols = list((set(green) | set(energy) | set(utility) | set(banks) | set(reits) | set(etfs) | set(crypto) | set(tech)) - set(exclude))
+symbols = list((set(green) | set(energy) | set(materials) | set(utility) | set(banks) | set(reits) | set(etfs) | set(crypto) | set(tech)) - set(exclude))
     
-top_five = ['MSFT', 'AMZN', 'NEE', 'BEP', 'ORC']
+top_five = ['ADA-USD', 'MSFT', 'ETH-USD', 'AAPLE', 'AMZN']
 #symbols = list(set(top_five))
 
 plot = False
@@ -73,10 +75,7 @@ def TestCaseWithFit():
     # In a loop so data stays in memory if the user wants to change parameters.
     while True:
         yearsToConsider = AskYears()
-        minimumYield = AskMinYield()
         if yearsToConsider == "break":
-            break
-        if minimumYield == "break":
             break
         scores = []
 
