@@ -35,9 +35,27 @@ class Stock:
         """(List[Stock.Snapshot]) The known history of this Stock."""
         return self._history
     @history.setter
-    def history(self, market):
+    def history(self, history):
         """Set the history of this Stock."""
         self._history = history
+
+    @property
+    def revenue_per_market_cap(self):
+        """The latest business revenue per total market cap"""
+        return self._revenue_per_market_cap
+    @revenue_per_market_cap.setter
+    def revenue_per_market_cap(self, revenue_per_market_cap):
+        """Set the revenue per market cap."""
+        self._revenue_per_market_cap = revenue_per_market_cap
+
+    @property
+    def short_percent_of_float(self):
+        """The latest short position as a percent of float"""
+        return self._short_percent_of_float
+    @short_percent_of_float.setter
+    def short_percent_of_float(self, short_percent_of_float):
+        """Set the short percent of float"""
+        self._short_percent_of_float = short_percent_of_float
 
     class Snapshot:
         """
@@ -141,6 +159,16 @@ class Stock:
                 
             self.AddSnapshot(price=row['Open'], date=date, dividend=dividend_today, annualDividend=annualDividend)
             #self.AddSnapshot(price=row['Close'], date=date, annualDividend=annualDividend)
+
+        try:
+            self.short_percent_of_float = stock.info['shortPercentOfFloat']
+        except(KeyError):
+            self.short_percent_of_float = 0.
+        try:
+            self.revenue_per_market_cap = stock.info['revenuePerShare'] / self.history[-1].price
+        except(KeyError, TypeError):
+            self.revenue_per_market_cap = 0.
+
         print(f"History for {self.name} updated.")
 
     def AverageDividendPercent(self, years=10):
@@ -332,6 +360,8 @@ class Stock:
         csvfile = open(f"Cache/{self.symbol}.csv", "w", newline='')
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow([self.symbol, self.name, self.market])
+        writer.writerow(['Revenue Per Market Cap:', self.revenue_per_market_cap])
+        writer.writerow(['Short Percent of Float:', self.short_percent_of_float])
         writer.writerow(['Date', 'Price', 'Dividend', 'Annualized Dividend'])
         for snapshot in self._history:
             writer.writerow([snapshot.date.strftime("%m/%d/%Y"), snapshot.price, snapshot.dividend, snapshot.annualDividend])
@@ -362,8 +392,12 @@ class Stock:
                 stock.symbol = row[0]
                 stock.name = row[1]
                 stock.market = row[2]
-            elif rowNum > 1:
-                #row[1] is header information "date, price, dividend"
+            elif row[0] == 'Revenue Per Market Cap:':
+                stock.revenue_per_market_cap = row[1]
+            elif row[0] == 'Short Percent of Float:':
+                stock.short_percent_of_float = row[1]
+            elif row[0] != 'Date':
+                # Skip the header row
                 stock.AddSnapshot(price=float(row[1]), date=parse(row[0]), dividend=float(row[2]), annualDividend=float(row[3]))
             rowNum += 1
 
@@ -404,6 +438,8 @@ class Stock:
             if file == f"{symbol}.csv":
                 print(f"Parsing {symbol} from local drive.")
                 stock = Stock.ParseCSV("Cache/" + file)
+                if len(stock.history) == 0:
+                    return stock
                 if minDate == None or stock.history[-1].date >= minDate:
                     return stock
 
