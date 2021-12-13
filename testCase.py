@@ -33,7 +33,7 @@ materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 
 utility   = ['BCE', 'T', 'VOD', 'WM']
 banks     = ['CM', 'BNS', 'COIN']
 reits     = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY', 'CPT', 'ARE', 'PLD', 'WELL', 'DLR', 'MAC', 'HST', \
-             'EQR', 'VGSRX']
+             'EQR', 'VGSRX', 'ACC']
 etfs      = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC', 'PRU']
 crypto    = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD', \
              'ASM-USD', 'ATOM-USD', 'SOL-USD', 'MANA-USD']
@@ -41,7 +41,7 @@ tech      = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ', 'AMD', 'FB', 'CCI']
 space     = ['SPCE', 'ARCX', 'UFO', 'ROKT']
 infra     = ['DOZR', 'ITRI', 'NVEE', 'PWR', 'DUK', 'XEL']
 memes     = ['AMC', 'GME', 'DOGE-USD', 'SHIB-USD']
-africa    = ['AFK', 'EFM', 'ACC', 'NGE', 'CAFRX', 'NAFAX', 'WAFMX', 'TFMAX', 'HSFAX', 'FM', 'HLMOX']
+africa    = ['AFK', 'EFM', 'NGE', 'CAFRX', 'NAFAX', 'WAFMX', 'TFMAX', 'HSFAX', 'FM', 'HLMOX']
 other     = ['F', 'TM', 'FUJHY', 'MZDAY', 'CAT', 'DE', 'URI', 'OSK', 'BIPC', 'PAVE']
 indexes   = ['^DJI', '^IXIC'] # Yahoo's record for INX is not right.
 
@@ -105,9 +105,9 @@ def TestCaseWithFit():
 
             try:
                 apr_fit = stock.get_apr_fit(years=yearsToConsider)
-            except:
+            except Exception as ex:
                 # Looks like I need to do some sanitizing of the data from yFinance. BEP hits a math domain error here and previously gave strange results in other tests.
-                print(f"Failed to fit curve onto data from {stock.symbol}")
+                print(f"Failed to fit curve onto data from {stock.symbol}: {ex}")
                 continue
 
             # Determine how much this stock is currently overvalued/undervalued
@@ -127,6 +127,10 @@ def TestCaseWithFit():
             else:
                 score = Score(stock, (apr_fit.rate + undervalue / 8.) * (1. - N_STDEVS * apr_fit.stdev) + 1. / stock.pe_ratio)
                 # stdev applies as both uncertainty in the fit and as potential loss
+
+            if math.isnan(score.score):
+                print(f"Failed to calculate score for {stock.symbol}")
+                continue
 
             # Boost the investments we want to bias towards
             if stock.symbol in boost:

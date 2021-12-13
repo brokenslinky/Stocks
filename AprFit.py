@@ -18,6 +18,8 @@ class AprFit:
     def __init__(self, t: list, y: list):
         if len(t) != len(y):
             raise Exception("t and y lists must be the same length.")
+        if len(t) == 0:
+            raise Exception("No data in range")
 
         import math
 
@@ -26,7 +28,12 @@ class AprFit:
             sum_dtlny      = 0.
             sum_dt         = 0.
             sum_dt_squared = 0.
+            skipped_lines  = 0
             for index in range(len(t)):
+                if not float(y[index]):
+                    # Some bad data from yFinance needs to be filtered
+                    skipped_lines += 1
+                    continue
                 sum_dtlny      += (t[index] - t_0) * math.log(y[index])
                 sum_dt         += (t[index] - t_0)
                 sum_dt_squared += (t[index] - t_0) * (t[index] - t_0)
@@ -36,7 +43,7 @@ class AprFit:
             stdev = 0.
             for index in range(len(t)):
                 stdev += ((y_0 * (1 + rate) ** (t[index] - t_0) - y[index]) ** 2) / (y[index] ** 2)
-            stdev /= len(t) - 1.
+            stdev /= len(t) - skipped_lines - 1.
             stdev = math.sqrt(stdev)
 
             return rate, stdev
