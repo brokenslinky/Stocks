@@ -24,26 +24,38 @@ def AskYears():
         return AskYears()
 
 # Define the symbols we want to use for test cases
-green     = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', 'SMOG', 'PDB', 'ERTH', 'CWEN', 'FSLR', 'TSLA', 'NIO']
-energy    = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE', 'CWEN']
-materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 'APD', 'FCX', 'LTHM', 'LAC']
+green     = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', \
+             'SMOG', 'PBD', 'ERTH', 'CWEN', 'FSLR', 'TSLA', 'NIO', 'SPYX', 'BGRN', 'CTEX', 'KLNE', 'FRNW', 'WNDY', \
+             'RNRG', 'VCLN', 'CNRG', 'SULR', 'RAYS', 'SHFT', 'CHPT', 'ETN', 'BLNK', 'EVGO', 'VLTA', 'FRSG']
+energy    = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE', 'CWEN','DOZR', 'ITRI', 'NVEE', 'PWR', 'DUK', 'XEL']
+materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 'APD', 'FCX', 'LTHM', 'LAC', 'VMC' \
+             'MLM', 'NUE', 'FCX']
 utility   = ['BCE', 'T', 'VOD', 'WM']
 banks     = ['CM', 'BNS', 'COIN']
-reits     = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY']
+reits     = ['ABR', 'NHI', 'AGNC', 'KREF', 'MPW', 'ACRE', 'NLY', 'CPT', 'ARE', 'PLD', 'WELL', 'DLR', 'MAC', 'HST', \
+             'EQR', 'VGSRX']
 etfs      = ['SSSS', 'IRCP', 'ELP', 'ORC', 'MBT', 'QIWI', 'GECC', 'FSK', 'FSKR', 'VIV', 'ARR', 'EFC', 'PRU']
-crypto    = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD']
-tech      = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ', 'AMD']
+crypto    = ['ETH-USD', 'BTC-USD', 'LTC-USD', 'ZEC-USD', 'ADA-USD', 'BCH-USD', 'XLM-USD', 'ETC-USD', 'DOGE-USD', \
+             'ASM-USD', 'ATOM-USD', 'SOL-USD', 'MANA-USD']
+tech      = ['MSFT', 'AMZN', 'AAPL', 'NFLX', 'GOOG', 'SQ', 'AMD', 'FB', 'CCI']
+space     = ['SPCE', 'ARCX', 'UFO', 'ROKT']
+infra     = ['DOZR', 'ITRI', 'NVEE', 'PWR', 'DUK', 'XEL']
+memes     = ['AMC', 'GME', 'DOGE-USD', 'SHIB-USD']
+africa    = ['AFK', 'EFM', 'ACC', 'NGE', 'CAFRX', 'NAFAX', 'WAFMX', 'TFMAX', 'HSFAX', 'FM', 'HLMOX']
+other     = ['F', 'TM', 'FUJHY', 'MZDAY', 'CAT', 'DE', 'URI', 'OSK', 'BIPC', 'PAVE']
 indexes   = ['^DJI', '^IXIC'] # Yahoo's record for INX is not right.
 
 # Exclude the ones which don't perform as well so setup is faster.
 exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
 
-# Some which I don't like. Nerf them by 20%
-nerf = ['ETC-USD', 'AAPL']
+# Some which I'm bearish on. Nerf them by 50%
+nerf  = list(set(['ETC-USD', 'AAPL']) | set(memes))
+# Some which I want to bias towards. Boosted by 25%
+boost = list(set(green) | set(space) | set(africa))
 
-symbols = list((set(green) | set(energy) | set(materials) | set(utility) | set(banks) | set(reits) | set(etfs) | set(crypto) | set(tech)) - set(exclude))
-    
-top_five = ['ADA-USD', 'MSFT', 'ETH-USD', 'AAPLE', 'AMZN']
+symbols = list((set(green) | set(energy) | set(materials) | set(utility) | set(banks) | set(reits) | set(etfs) | \
+                set(crypto) | set(tech) | set(space) | set(memes) | set(africa) | set(other)) - set(exclude))
+top_five = ['ETH-USD', 'MSFT', 'AMD', 'TX', 'ABR']
 #symbols = list(set(top_five))
 
 plot = False
@@ -70,8 +82,10 @@ def TestCaseWithFit():
         stock = Stock.ShyRetrieve(symbol=symbol, minDate=(datetime.datetime.now() - datetime.timedelta(days=5)))
         if len(stock._history) > 0:
             stocks.append(stock)
+        else:
+            print(f"{stock.symbol} no history")
     
-    Beep(300, 500) # Let the user know it's done importingscore.symbol
+    Beep(300, 500) # Let the user know it's done importing
 
     today = datetime.datetime.now()
 
@@ -111,18 +125,18 @@ def TestCaseWithFit():
             if apr_fit.stdev * N_STDEVS > 1.:
                 score = Score(stock, 0.)
             else:
-                score = Score(stock, 100. * (apr_fit.rate + undervalue / 8.) * (1. - N_STDEVS * apr_fit.stdev) - apr_fit.stdev * N_STDEVS)
+                score = Score(stock, (apr_fit.rate + undervalue / 8.) * (1. - N_STDEVS * apr_fit.stdev) + 1. / stock.pe_ratio)
                 # stdev applies as both uncertainty in the fit and as potential loss
 
-            # Bias towards green investments
-            if stock.symbol in green:
+            # Boost the investments we want to bias towards
+            if stock.symbol in boost:
                 score.score *= 1.25
 
-            # Nerf the stocks I don't like
+            # Nerf the stocks we don't like
             if stock.symbol in nerf:
-                score.score *= 0.8
+                score.score *= 0.5
 
-            # Attach metadata to the score so I can print it.
+            # Attach metadata to the score so we can print it.
             score.rate        = 100. * apr_fit.rate
             score.undervalue  = 100. * undervalue
             score.uncertainty = 100. * apr_fit.stdev
@@ -145,11 +159,10 @@ def TestCaseWithFit():
                 break
             number_of_recommendations += 1
         print("Recommended distribution:")
-        recommendations = []
         for i in range(number_of_recommendations):
             stock = scores[i].stock
             recommended_percent = 100 * scores[i].score / sum
-            print(f"{recommended_percent:.2f}% in {stock.symbol}    Score: {scores[i].score:.2f}    <APR>: {scores[i].rate:.2f}    undervalued by {scores[i].undervalue:.2f}%    uncertainty: {scores[i].uncertainty:.2f}%")
+            print(f"{recommended_percent:.2f}% in {stock.symbol}    Score: {scores[i].score:.2f}    P/E: {stock.pe_ratio:.2f}    <APR>: {scores[i].rate:.2f}    undervalued by {scores[i].undervalue:.2f}%    uncertainty: {scores[i].uncertainty:.2f}%")
 
             if plot:
                 stock.get_apr_fit(years=yearsToConsider, plot=True)

@@ -40,17 +40,21 @@ class Stock:
         self._history = history
 
     @property
-    def revenue_per_market_cap(self):
+    def pe_ratio(self):
         """The latest business revenue per total market cap"""
-        return self._revenue_per_market_cap
-    @revenue_per_market_cap.setter
-    def revenue_per_market_cap(self, revenue_per_market_cap):
+        if self._pe_ratio == None:
+            return float('inf')
+        return self._pe_ratio
+    @pe_ratio.setter
+    def pe_ratio(self, pe_ratio):
         """Set the revenue per market cap."""
-        self._revenue_per_market_cap = revenue_per_market_cap
+        self._pe_ratio = pe_ratio
 
     @property
     def short_percent_of_float(self):
         """The latest short position as a percent of float"""
+        if self._short_percent_of_float == None:
+            return 0.
         return self._short_percent_of_float
     @short_percent_of_float.setter
     def short_percent_of_float(self, short_percent_of_float):
@@ -140,7 +144,6 @@ class Stock:
                 self.name = stock.info['shortName']
         yhistory = stock.history(period="max")
         print(yhistory)
-        print()
 
         dividends = []
         for date, row in yhistory.iterrows():
@@ -165,9 +168,9 @@ class Stock:
         except(KeyError):
             self.short_percent_of_float = 0.
         try:
-            self.revenue_per_market_cap = stock.info['revenuePerShare'] / self.history[-1].price
+            self.pe_ratio = stock.info['forwardPE']
         except(KeyError, TypeError):
-            self.revenue_per_market_cap = 0.
+            self.pe_ratio = float('inf')
 
         print(f"History for {self.name} updated.")
 
@@ -360,7 +363,7 @@ class Stock:
         csvfile = open(f"Cache/{self.symbol}.csv", "w", newline='')
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow([self.symbol, self.name, self.market])
-        writer.writerow(['Revenue Per Market Cap:', self.revenue_per_market_cap])
+        writer.writerow(['Latest P/E Ratio:', self.pe_ratio])
         writer.writerow(['Short Percent of Float:', self.short_percent_of_float])
         writer.writerow(['Date', 'Price', 'Dividend', 'Annualized Dividend'])
         for snapshot in self._history:
@@ -386,19 +389,30 @@ class Stock:
         stock = Stock(symbol=None)
 
         rowNum = 0
-        from dateutil.parser import parse
+        from dateutil.parser import parse, _parser
         for row in reader:
             if rowNum == 0:
                 stock.symbol = row[0]
                 stock.name = row[1]
                 stock.market = row[2]
-            elif row[0] == 'Revenue Per Market Cap:':
-                stock.revenue_per_market_cap = row[1]
+            elif row[0] == 'Latest P/E Ratio:':
+                try:
+                    stock.pe_ratio = float(row[1])
+                    if stock.pe_ratio == 0.:
+                        stock.pe_ratio = float('inf')
+                except(ValueError):
+                    stock.pe_ratio = float('inf')
             elif row[0] == 'Short Percent of Float:':
-                stock.short_percent_of_float = row[1]
+                try:
+                    stock.short_percent_of_float = float(row[1])
+                except(ValueError):
+                    stock.short_percent_of_float = 0.
             elif row[0] != 'Date':
                 # Skip the header row
-                stock.AddSnapshot(price=float(row[1]), date=parse(row[0]), dividend=float(row[2]), annualDividend=float(row[3]))
+                try:
+                    stock.AddSnapshot(price=float(row[1]), date=parse(row[0]), dividend=float(row[2]), annualDividend=float(row[3]))
+                except(_parser.ParserError):
+                    print(f"WARNING: Un-parsed row in {stock.symbol}: {row[0]}")
             rowNum += 1
 
         csvfile.close()
@@ -438,9 +452,7 @@ class Stock:
             if file == f"{symbol}.csv":
                 print(f"Parsing {symbol} from local drive.")
                 stock = Stock.ParseCSV("Cache/" + file)
-                if len(stock.history) == 0:
-                    return stock
-                if minDate == None or stock.history[-1].date >= minDate:
+                if len(stock.history) != 0 and (minDate == None or stock.history[-1].date >= minDate):
                     return stock
 
         def okayToDownload():
