@@ -27,8 +27,8 @@ def AskYears():
 green     = ['FSLEX', 'ALTEX', 'NEXTX', 'GAAEX', 'NALFX', 'BEP', 'QCLN', 'ACES', 'ICLN', 'PBW', 'TAN', 'FAN', 'DRIV', \
              'SMOG', 'PBD', 'ERTH', 'CWEN', 'FSLR', 'TSLA', 'NIO', 'SPYX', 'BGRN', 'CTEX', 'KLNE', 'FRNW', 'WNDY', \
              'RNRG', 'VCLN', 'CNRG', 'SULR', 'RAYS', 'SHFT', 'CHPT', 'ETN', 'BLNK', 'EVGO', 'VLTA', 'FRSG']
-energy    = ['EPD', 'ENB', 'KMI', 'TOT', 'PSX', 'NEE', 'CWEN','DOZR', 'ITRI', 'NVEE', 'PWR', 'DUK', 'XEL']
-materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 'APD', 'FCX', 'LTHM', 'LAC', 'VMC' \
+energy    = ['EPD', 'ENB', 'KMI', 'PSX', 'NEE', 'CWEN','DOZR', 'ITRI', 'NVEE', 'PWR', 'DUK', 'XEL']
+materials = ['A', 'CCF', 'VMI', 'KWR', 'MG', 'FLOW', 'RIO', 'BHP', 'TX', 'LYB', 'APD', 'FCX', 'LTHM', 'LAC', 'VMC', \
              'MLM', 'NUE', 'FCX']
 utility   = ['BCE', 'T', 'VOD', 'WM']
 banks     = ['CM', 'BNS', 'COIN']
@@ -46,11 +46,12 @@ other     = ['F', 'TM', 'FUJHY', 'MZDAY', 'CAT', 'DE', 'URI', 'OSK', 'BIPC', 'PA
 indexes   = ['^DJI', '^IXIC'] # Yahoo's record for INX is not right.
 
 # Exclude the ones which don't perform as well so setup is faster.
-exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA']
+exclude = ['PSX', 'T', 'VOD', 'IRCP', 'ELP', 'QIWI', 'GECC', 'FSKR', 'VIV', 'TRP', 'TEVA', 'MBT']
+# MBT may be a good one to watch if Russia fixes its politics
 
 # Some which I'm bearish on. Nerf them by 50%
-nerf  = list(set(['ETC-USD', 'AAPL']) | set(memes))
-# Some which I want to bias towards. Boosted by 25%
+nerf  = list(set(['ETC-USD', 'AAPL', 'TSLA']) | set(memes))
+# Some which I want to bias towards. Boosted by 50%
 boost = list(set(green) | set(space) | set(africa))
 
 symbols = list((set(green) | set(energy) | set(materials) | set(utility) | set(banks) | set(reits) | set(etfs) | \
@@ -125,7 +126,7 @@ def TestCaseWithFit():
             if apr_fit.stdev * N_STDEVS > 1.:
                 score = Score(stock, 0.)
             else:
-                score = Score(stock, (apr_fit.rate + undervalue / 8.) * (1. - N_STDEVS * apr_fit.stdev) + 1. / stock.pe_ratio)
+                score = Score(stock, (apr_fit.rate + undervalue / 4.) * (1. - N_STDEVS * apr_fit.stdev) + 1. / stock.pe_ratio)
                 # stdev applies as both uncertainty in the fit and as potential loss
 
             if math.isnan(score.score):
@@ -134,7 +135,7 @@ def TestCaseWithFit():
 
             # Boost the investments we want to bias towards
             if stock.symbol in boost:
-                score.score *= 1.25
+                score.score *= 1.5
 
             # Nerf the stocks we don't like
             if stock.symbol in nerf:
@@ -162,6 +163,20 @@ def TestCaseWithFit():
                 sum -= candidate.score
                 break
             number_of_recommendations += 1
+
+        # Don't recommend >25% in any one asset
+        LIMIT = 0.25
+        if scores[0].score > sum * LIMIT:
+            redistribution = (scores[0].score - sum * LIMIT) / (number_of_recommendations - 1)
+            for score in scores:
+                score.score += redistribution
+            if scores[1].score > sum * LIMIT:
+                redistribution = (scores[1].score - sum * LIMIT) / (number_of_recommendations - 2)
+                for score in scores:
+                    score.score += redistribution
+                scores[1].score = sum * LIMIT
+            scores[0].score = sum * LIMIT
+
         print("Recommended distribution:")
         for i in range(number_of_recommendations):
             stock = scores[i].stock
