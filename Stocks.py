@@ -139,7 +139,7 @@ class Stock:
         import yfinance as yf
         import datetime
         stock = yf.Ticker(self._symbol)
-        if self.name == None or self.name == self.symbol:
+        if (self.name == None or self.name == self.symbol) and stock.info is not None:
             if "shortName" in stock.info:
                 self.name = stock.info['shortName']
         yhistory = stock.history(period="max")
@@ -173,6 +173,11 @@ class Stock:
             self.pe_ratio = float('inf')
 
         print(f"History for {self.name} updated.")
+
+    def GetInfo(self):
+        """ Retrieve the stock info from yFinance API """
+        import yfinance as yf
+        return yf.Ticker(self._symbol).get_info()
 
     def AverageDividendPercent(self, years=10):
         """
